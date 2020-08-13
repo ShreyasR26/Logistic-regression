@@ -1,0 +1,196 @@
+"""
+*********************************************************************************************************************************************
+Projet Name: Logistic Regression to check whether a candidate has passed or failed.
+
+Description: A given data set,DMV.csv has details of the driving test written and driving test scores and gives a result 1 or 0
+             1->he/she passed 0->he/she failed. The goal is to train the model based on the given data and with given test scores,
+             be able to tell whether a poarticular candidate would pass or fail.
+                  1. Downloading the Data
+                     Using Pandas libraries, DMV.csv can be downloaded and the data can be read and described.
+                  2. Make a scatter plot of passed and failed candidates, green indicating pass and red indicating fail.
+                  3. Define a logistic function, returning 1/1+exp^-x,, exp is obtained from numpy libraries.
+                  4. Compute the cost function and gradient , initialize them both.
+                  5. Calculate gradient descent to minimize cost function. Use multiple iterations to do so(Say 200) and make a plot.
+                  6. Mark the boundary conditions for making a distinction between pass and fail.
+                  7. Predict the model for two random inputs and return the probability for a particular candidate to pass.
+                  
+********************************************************************************************************************************************"""
+
+
+"""******************************************************************************************************************************************
+Date: 1 August 2020
+
+Name: Shreyas Ramani
+
+*********************************************************************************************************************************************"""
+
+
+
+"""********************************************************************************************************************************************"""
+#Imprted Libraries
+import numpy as np
+#used for importing various arrays and functions.
+import pandas as pd
+#used for reading csv files.
+import matplotlib.pyplot as plt
+#used for various plots
+import seaborn as sns
+plt.style.use("ggplot")
+#used for scatter plots
+from pylab import rcParams
+rcParams['figure.figsize'] = 12, 8
+#default figure size
+
+"""********************************************************************************************************************************************"""
+
+
+
+"""********************************************************************************************************************************************"""
+data=pd.read_csv("C:/Users/admin/Documents/Dmv_LGREG.csv")
+#reading the csv file and storing it in data.
+print(data)
+
+print(data.info())
+
+#separating the scores:
+score=data[['DMV_Test_1','DMV_Test_2']].values
+#keeping scores of dmv1 and dmv2 as two separate axes.
+results=data['Results'].values
+#stores the results(pass or fail)
+
+passed=(results==1).reshape(100,1)
+#if results=1, passed
+failed=(results==0).reshape(100,1)
+#if results=0 failed
+
+p=sns.scatterplot(x=score[passed[:,0],0], 
+                  y=score[passed[:,0],1],
+                  marker="^",
+                  color="green",
+                  s=60)
+sns.scatterplot(x=score[failed[:,0],0], 
+                y=score[failed[:,0],1],
+                marker="x",
+                color="red",
+                s=60)
+#making scatter plot of passed and failed candidates ^ marking passed, x marking failed.
+
+p.set(xlabel="DMV Written Test 1", ylabel="DMV Written Test 2")
+p.legend(['Passed','Failed'])
+plt.show()
+#shows plot
+
+"""********************************************************************************************************************************************"""
+
+
+
+"""********************************************************************************************************************************************"""
+#we need Logistic Regression to move the failed to one side and passed to the other side of the plot.
+
+def logistic_function(x):
+    return (1/(1+np.exp(-x)))
+
+
+#cost function
+def compute_cost(theta,x,y):
+    m=len(y)
+    y_pred=logistic_function(np.dot(x,theta))
+    error=(y*np.log(y_pred))+(1-y)*np.log(1-y_pred)
+    cost=-1/m*sum(error)
+    gradient=(1/m)*np.dot(x.transpose(),y_pred-y)
+    return cost[0],gradient
+
+#initializing values for cost fuction and gradient decent
+mean_scores=np.mean(score,axis=0)
+#mean of all the scores.
+std_scores=np.std(score,axis=0)
+#standard deviaition of all the scores.
+score=(score-mean_scores)/std_scores
+
+rows=score.shape[0]
+cols=score.shape[1]
+
+x=np.append(np.ones((rows,1)),score,axis=1)
+#initializing x as score.
+y=results.reshape(rows,1)
+#initializing y as results.
+theta_init=np.zeros((cols+1,1))
+#initializing theta
+cost, gradient =compute_cost(theta_init, x, y)
+
+print("Cost at initialization: ",cost)
+print("Gradient at zero",gradient)
+
+
+"""********************************************************************************************************************************************"""
+
+
+
+"""********************************************************************************************************************************************"""
+#Calculating Gradient descent by minimizing cost function
+def gradient_descent(x,y,theta,alpha,iterations):
+    costs=[]
+    for i in range(iterations):
+        cost, gradient=compute_cost(theta, x, y)
+        theta -=(alpha * gradient)
+        #formula for cost function.
+        costs.append(cost)    
+    return theta, costs
+theta,costs=gradient_descent(x,y,theta_init,1,200)
+print("Theta after 200 iterations ", theta)
+print("Cost after 200 iterations:",costs[-1])
+
+plt.plot(costs)
+plt.xlabel("Iterations")
+plt.ylabel("Theta")
+plt.title("Values in cost function in gradient descent")
+
+p2=sns.scatterplot(x=x[passed[:,0],1], 
+                  y=x[passed[:,0],2],
+                  marker="^",
+                  color="green",
+                  s=60)
+sns.scatterplot(x=x[failed[:,0],1], 
+                y=x[failed[:,0],2],
+                marker="x",
+                color="red",
+                s=60)
+
+p2.set(xlabel="DMV Written Test 1", ylabel="DMV Written Test 2")
+p2.legend(['Passed','Failed'])
+
+"""********************************************************************************************************************************************"""
+
+
+
+
+"""********************************************************************************************************************************************"""
+#boundary conditions
+x_boundary=np.array([np.min(x[:,1]), np.max(x[:,1])])
+y_boundary=-((theta[0]+theta[1]*x_boundary)/theta[2])
+#draws line plot between, passed and failed candidates.
+sns.lineplot(x=x_boundary,y=y_boundary,color="blue")
+plt.show()
+
+#Predicting the model
+def predict(theta,x):
+    results=x.dot(theta)
+    return results>0
+
+p=predict(theta,x)
+#testing the accuracy
+
+print("Tracking Accuracy= ",sum(p==y),"%")
+#to check accuracy of the model
+
+test=np.array([50,75])
+#random values
+
+test=(test-mean_scores)/std_scores
+
+test=np.append(np.ones(1),test)
+
+prob=logistic_function(test.dot(theta))
+print("Probability that a person with these scores passes the test is ",np.round(prob[0],2))
+
+"""********************************************************************************************************************************************"""
